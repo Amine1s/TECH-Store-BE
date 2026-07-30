@@ -341,6 +341,33 @@ app.use((req, res, next) => {
 });
 
 // API Routes
+// 0. Root status endpoint
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "TECH Store Backend API is running on Vercel 🚀",
+    endpoints: {
+      products: "/api/products",
+      stats: "/api/stats",
+      orders: "/api/orders",
+      health: "/api/health"
+    }
+  });
+});
+
+app.get("/api", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "TECH Store Backend API is operational",
+    endpoints: {
+      products: "/api/products",
+      stats: "/api/stats",
+      orders: "/api/orders",
+      health: "/api/health"
+    }
+  });
+});
+
 // 1. Get stats for security, speed & visitor metrics
 app.get("/api/stats", (req, res) => {
   res.json({
@@ -734,4 +761,3 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
-
