@@ -9,5 +9,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["server.ts", "products.ts"]
+  "include": ["server.ts", "products.ts", "api/**/*.ts"]
 }
+
