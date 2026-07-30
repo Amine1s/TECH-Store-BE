@@ -369,7 +369,7 @@ app.get("/api", (req, res) => {
 });
 
 // 1. Get stats for security, speed & visitor metrics
-app.get("/api/stats", (req, res) => {
+app.get(["/api/stats", "/stats"], (req, res) => {
   res.json({
     activeUsers: activeUsersCount,
     averageLatencyMs: requestLogs.length > 0 
@@ -385,7 +385,7 @@ app.get("/api/stats", (req, res) => {
 });
 
 // 2. Products retrieval API with filtering, search & pagination
-app.get("/api/products", (req, res) => {
+app.get(["/api/products", "/products"], (req, res) => {
   const { category, search, sort, limit = "80", page = "1" } = req.query;
   
   let filtered = [...allProducts];
@@ -440,7 +440,7 @@ app.get("/api/products/:id", (req, res) => {
 });
 
 // 4. Secure Checkout process simulation with high speed and validation
-app.post("/api/checkout", (req, res) => {
+app.post(["/api/checkout", "/checkout"], (req, res) => {
   const { cart, checkoutInfo, cartSessionId } = req.body;
 
   if (!cart || !Array.isArray(cart) || cart.length === 0) {
@@ -533,7 +533,7 @@ app.post("/api/checkout", (req, res) => {
 });
 
 // 4.1 Sync Active Cart Session (Cart Abandonment Endpoint)
-app.post("/api/cart-abandonment/sync", (req, res) => {
+app.post(["/api/cart-abandonment/sync", "/api/sync", "/sync"], (req, res) => {
   const { sessionId, items, customerName, customerCity, customerPhone, email, status } = req.body;
   if (!sessionId) {
     return res.status(400).json({ error: "معرّف الجلسة مطلوب" });
@@ -623,7 +623,7 @@ app.post("/api/cart-abandonment/recover", (req, res) => {
 });
 
 // 5. Get All Orders
-app.get("/api/orders", (req, res) => {
+app.get(["/api/orders", "/orders"], (req, res) => {
   res.json(orders);
 });
 
