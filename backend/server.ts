@@ -8,12 +8,13 @@ const PORT = 3000;
 // Enable JSON parsing
 app.use(express.json());
 
-// CORS & Security Headers Middleware (Production-ready cross-origin resource sharing)
-app.use((req, res, next) => {
-  // Allow requests from any origin for the API to support detached frontend hosting (e.g. Vercel, Netlify)
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+11: // Clean duplicate slashes in incoming request URLs (e.g. //api/orders -> /api/orders)
+12: app.use((req, res, next) => {
+13:   if (req.url.includes("//")) {
+14:     req.url = req.url.replace(/\/{2,}/g, "/");
+15:   }
+16:   next();
+17: });
   
   // Handle preflight OPTIONS requests immediately
   if (req.method === "OPTIONS") {
