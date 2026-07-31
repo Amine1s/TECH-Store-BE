@@ -8,13 +8,20 @@ const PORT = 3000;
 // Enable JSON parsing
 app.use(express.json());
 
-11: // Clean duplicate slashes in incoming request URLs (e.g. //api/orders -> /api/orders)
-12: app.use((req, res, next) => {
-13:   if (req.url.includes("//")) {
-14:     req.url = req.url.replace(/\/{2,}/g, "/");
-15:   }
-16:   next();
-17: });
+// Clean duplicate slashes in incoming request URLs (e.g. //api/orders -> /api/orders)
+app.use((req, res, next) => {
+  if (req.url.includes("//")) {
+    req.url = req.url.replace(/\/{2,}/g, "/");
+  }
+  next();
+});
+
+// CORS & Security Headers Middleware (Production-ready cross-origin resource sharing)
+app.use((req, res, next) => {
+  // Allow requests from any origin for the API to support detached frontend hosting (e.g. Vercel, Netlify)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   
   // Handle preflight OPTIONS requests immediately
   if (req.method === "OPTIONS") {
@@ -431,7 +438,7 @@ app.get(["/api/products", "/products"], (req, res) => {
 });
 
 // 3. Get Single Product
-app.get("/api/products/:id", (req, res) => {
+app.get(["/api/products/:id", "/products/:id"], (req, res) => {
   const product = allProducts.find(p => p.id === req.params.id);
   if (product) {
     res.json(product);
@@ -580,7 +587,7 @@ app.post(["/api/cart-abandonment/sync", "/api/sync", "/sync"], (req, res) => {
 });
 
 // 4.2 Get Cart Abandonment analytics and live feed
-app.get("/api/cart-abandonment", (req, res) => {
+app.get(["/api/cart-abandonment", "/cart-abandonment"], (req, res) => {
   const activeAbandoned = cartSessions.filter(s => s.status === "abandoned" || s.status === "recovered");
   const totalAbandonedCarts = activeAbandoned.length;
   const totalAbandonedValue = activeAbandoned.reduce((acc, curr) => acc + curr.total, 0);
@@ -605,7 +612,7 @@ app.get("/api/cart-abandonment", (req, res) => {
 });
 
 // 4.3 Trigger Recovery (simulate reminder email/SMS)
-app.post("/api/cart-abandonment/recover", (req, res) => {
+app.post(["/api/cart-abandonment/recover", "/cart-abandonment/recover"], (req, res) => {
   const { sessionId, discount } = req.body;
   const session = cartSessions.find(s => s.id === sessionId);
   if (!session) {
@@ -629,7 +636,7 @@ app.get(["/api/orders", "/orders"], (req, res) => {
 });
 
 // 6. Update Order Status & Info (Status Tracking)
-app.patch("/api/orders/:id", (req, res) => {
+app.patch(["/api/orders/:id", "/orders/:id"], (req, res) => {
   const { id } = req.params;
   const { status, shippingProvider, trackingNumber } = req.body;
 
@@ -663,7 +670,7 @@ app.patch("/api/orders/:id", (req, res) => {
 });
 
 // 7. Issue Shipping Label
-app.post("/api/orders/:id/shipping-label", (req, res) => {
+app.post(["/api/orders/:id/shipping-label", "/orders/:id/shipping-label"], (req, res) => {
   const { id } = req.params;
   const orderIndex = orders.findIndex(o => o.id === id);
   if (orderIndex === -1) {
@@ -675,7 +682,7 @@ app.post("/api/orders/:id/shipping-label", (req, res) => {
 });
 
 // 8. Re-send/Send Invoice Email
-app.post("/api/orders/:id/invoice-mail", (req, res) => {
+app.post(["/api/orders/:id/invoice-mail", "/orders/:id/invoice-mail"], (req, res) => {
   const { id } = req.params;
   const { email } = req.body;
   const orderIndex = orders.findIndex(o => o.id === id);
