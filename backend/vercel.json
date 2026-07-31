@@ -1,11 +1,9 @@
-22:   "headers": [
-3:     {
-4:       "source": "/(.*)",
-5:       "headers": [
-6:         { "key": "Access-Control-Allow-Credentials", "value": "true" },
-7:         { "key": "Access-Control-Allow-Origin", "value": "*" },
-8:         { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-9:         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
-10:       ]
-11:     }
-12:   ],
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
+}
