@@ -11,4 +11,3 @@
   },
   "include": ["server.ts", "products.ts", "api/**/*.ts"]
 }
-
