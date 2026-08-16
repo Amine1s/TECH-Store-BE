@@ -935,12 +935,14 @@ function getTrackingEventsForStatus(status: string, dateStr: string, customerCit
 async function startServer() {
   // Vite integration (Only load in local full-stack development, bypass in standalone API backend)
   if (process.env.NODE_ENV !== "production") {
-    try {
-      const { createServer: createViteServer } = await import("vite");
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
+    // Dynamic require/import safely guarded for environments where Vite is not installed
+      const viteModuleName = "vite";
+      const viteModule = await import(/* @vite-ignore */ viteModuleName);
+      if (viteModule && viteModule.createServer) {
+        const vite = await viteModule.createServer({
+          server: { middlewareMode: true },
+          appType: "spa",
+        });
       app.use(vite.middlewares);
       console.log("Vite development middleware integrated successfully.");
     } catch (err) {
