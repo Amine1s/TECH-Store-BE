@@ -791,6 +791,42 @@ app.get(["/api/admin/security-logs", "/admin/security-logs"], (req, res) => {
   });
 });
 
+// 4.6 Hero Section Banner Settings (Dynamic Hero Product Customization)
+let heroBannerSettings = {
+  badge: "عرض الأسبوع الحصري",
+  title: "جيل جديد من الحواسيب الخارقة",
+  titleHighlight: "Pro-X الجيل العاشر",
+  description: "تغلب على الحدود الرقمية مع معالجات ثنائية النواة ونظام تبريد مائي مغلق. صمم خصيصاً للمبرمجين واللاعبين المحترفين الذين يطلبون الفخامة والسرعة الفائقة مع تشفير حماية متقدم.",
+  buttonText: "اكتشف المواصفات",
+  stockNotice: "متوفر 12 قطعة فقط بالمستودع",
+  productId: "c-3",
+  customImageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80",
+  customBadgeSubtext: "الإصدار المطور",
+  customPrice: 8499,
+  lastUpdated: new Date().toISOString()
+};
+
+app.get(["/api/hero-settings", "/hero-settings"], (req, res) => {
+  res.json(heroBannerSettings);
+});
+
+app.post(["/api/hero-settings", "/hero-settings"], (req, res) => {
+  const updates = req.body;
+  if (!updates) {
+    return res.status(400).json({ error: "البيانات غير صالحة" });
+  }
+  heroBannerSettings = {
+    ...heroBannerSettings,
+    ...updates,
+    lastUpdated: new Date().toISOString()
+  };
+  res.json({
+    success: true,
+    message: "تم تحديث إعدادات منتج الهيرو بنجاح!",
+    settings: heroBannerSettings
+  });
+});
+
 // 5. Get All Orders
 app.get(["/api/orders", "/orders"], (req, res) => {
   res.json(orders);
