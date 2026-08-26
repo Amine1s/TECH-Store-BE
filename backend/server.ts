@@ -1,7 +1,16 @@
 import express from "express";
 import path from "path";
 import { getProducts } from "./products.js"; // Local products mock database
-
+import {
+  fetchProductsFromDb,
+  saveProductToDb,
+  deleteProductFromDb,
+  fetchHeroSettingsFromDb,
+  saveHeroSettingsToDb,
+  fetchOrdersFromDb,
+  saveOrderToDb,
+  updateOrderInDb
+} from "./firestore.js";
 const app = express();
 const PORT = 3000;
 
@@ -36,8 +45,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mock database in-memory
-const allProducts = getProducts();
+// Mock database in-memory & synced with Firestore
+let allProducts = getProducts();
 
 interface OrderItem {
   product: any;
@@ -448,6 +457,49 @@ app.get(["/api/products/:id", "/products/:id"], (req, res) => {
   }
 });
 
+// 3.1 Admin Product Management Endpoints (Secure Serverless / Backend DB Writes)
+app.post(["/api/admin/products", "/admin/products"], async (req, res) => {
+  const product = req.body;
+  if (!product || !product.id || !product.name || !product.price) {
+    return res.status(400).json({ error: "بيانات المنتج غير مكتملة" });
+  }
+
+  const existingIdx = allProducts.findIndex(p => p.id === product.id);
+  if (existingIdx > -1) {
+    allProducts[existingIdx] = product;
+  } else {
+    allProducts.unshift(product);
+  }
+
+  await saveProductToDb(product);
+  res.status(201).json({ success: true, product });
+});
+
+app.put(["/api/admin/products/:id", "/admin/products/:id"], async (req, res) => {
+  const { id } = req.params;
+  const product = req.body;
+  if (!product) {
+    return res.status(400).json({ error: "البيانات غير صالحة" });
+  }
+
+  const existingIdx = allProducts.findIndex(p => p.id === id);
+  if (existingIdx > -1) {
+    allProducts[existingIdx] = { ...allProducts[existingIdx], ...product, id };
+  } else {
+    allProducts.unshift({ ...product, id });
+  }
+
+  await saveProductToDb({ ...product, id });
+  res.json({ success: true, product: { ...product, id } });
+});
+
+app.delete(["/api/admin/products/:id", "/admin/products/:id"], async (req, res) => {
+  const { id } = req.params;
+  allProducts = allProducts.filter(p => p.id !== id);
+  await deleteProductFromDb(id);
+  res.json({ success: true, message: "تم حذف المنتج بنجاح" });
+});
+
 // 4. Secure Checkout process simulation with high speed and validation
 app.post(["/api/checkout", "/checkout"], (req, res) => {
   const { cart, checkoutInfo, cartSessionId } = req.body;
@@ -810,7 +862,7 @@ app.get(["/api/hero-settings", "/hero-settings"], (req, res) => {
   res.json(heroBannerSettings);
 });
 
-app.post(["/api/hero-settings", "/hero-settings"], (req, res) => {
+app.post(["/api/hero-settings", "/hero-settings"], async (req, res) => {
   const updates = req.body;
   if (!updates) {
     return res.status(400).json({ error: "البيانات غير صالحة" });
@@ -820,6 +872,10 @@ app.post(["/api/hero-settings", "/hero-settings"], (req, res) => {
     ...updates,
     lastUpdated: new Date().toISOString()
   };
+
+  // Save to Firestore securely on the backend
+  await saveHeroSettingsToDb(heroBannerSettings);
+
   res.json({
     success: true,
     message: "تم تحديث إعدادات منتج الهيرو بنجاح!",
@@ -833,7 +889,7 @@ app.get(["/api/orders", "/orders"], (req, res) => {
 });
 
 // 6. Update Order Status & Info (Status Tracking)
-app.patch(["/api/orders/:id", "/orders/:id"], (req, res) => {
+app.patch(["/api/orders/:id", "/orders/:id"], async (req, res) => {
   const { id } = req.params;
   const { status, shippingProvider, trackingNumber } = req.body;
 
@@ -863,6 +919,10 @@ app.patch(["/api/orders/:id", "/orders/:id"], (req, res) => {
   );
 
   orders[orderIndex] = order;
+
+  // Sync update to Firestore
+  await updateOrderInDb(id, order);
+
   res.json({ success: true, order });
 });
 
@@ -933,9 +993,31 @@ function getTrackingEventsForStatus(status: string, dateStr: string, customerCit
 }
 
 async function startServer() {
+  // Sync in-memory state with Firestore on startup
+  try {
+    const dbProds = await fetchProductsFromDb(allProducts);
+    if (dbProds && dbProds.length > 0) {
+      allProducts = dbProds;
+    }
+
+    const dbHero = await fetchHeroSettingsFromDb(heroBannerSettings);
+    if (dbHero && dbHero.title) {
+      heroBannerSettings = dbHero;
+    }
+
+    const dbOrders = await fetchOrdersFromDb(orders);
+    if (dbOrders && dbOrders.length > 0) {
+      orders = dbOrders;
+    }
+    console.log("⚡ Backend loaded synced data from Firestore database.");
+  } catch (syncErr) {
+    console.warn(" Initial Firestore sync notice:", syncErr);
+  }
+
   // Vite integration (Only load in local full-stack development, bypass in standalone API backend)
   if (process.env.NODE_ENV !== "production") {
-    // Dynamic require/import safely guarded for environments where Vite is not installed
+    try {
+      // Dynamic require/import safely guarded for environments where Vite is not installed
       const viteModuleName = "vite";
       const viteModule = await import(/* @vite-ignore */ viteModuleName);
       if (viteModule && viteModule.createServer) {
@@ -943,8 +1025,9 @@ async function startServer() {
           server: { middlewareMode: true },
           appType: "spa",
         });
-      app.use(vite.middlewares);
-      console.log("Vite development middleware integrated successfully.");
+        app.use(vite.middlewares);
+        console.log("Vite development middleware integrated successfully.");
+      }
     } catch (err) {
       console.log("Running in standalone API backend mode (Vite not loaded).");
     }
@@ -955,6 +1038,7 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is booting on port ${PORT}...`);
