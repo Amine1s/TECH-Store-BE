@@ -35,7 +35,7 @@ function getFirebaseConfig() {
       projectId: process.env.FIREBASE_PROJECT_ID,
       apiKey: process.env.FIREBASE_API_KEY || "",
       authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${process.env.FIREBASE_PROJECT_ID}.firebaseapp.com`,
-      firestoreDatabaseId: process.env.FIRESTORE_DATABASE_ID || "ai-studio-luxuryelectronic-9b205320-d69d-4896-853f-dba9e26cdb6e",
+      firestoreDatabaseId: process.env.FIRESTORE_DATABASE_ID || "(default)",
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`,
       appId: process.env.FIREBASE_APP_ID || ""
     };
@@ -78,11 +78,12 @@ export function getDb(): Firestore | null {
   try {
     const config = getFirebaseConfig();
     const app = !getApps().length ? initializeApp(config) : getApp();
-    dbInstance = getFirestore(app, config.firestoreDatabaseId || "(default)");
-    console.log("✅ Serverless / Backend Firestore database connected successfully.");
+    const dbId = config.firestoreDatabaseId;
+    dbInstance = (dbId && dbId !== "(default)") ? getFirestore(app, dbId) : getFirestore(app);
+    console.log(" Serverless / Backend Firestore database connected successfully.");
     return dbInstance;
   } catch (err) {
-    console.error("❌ Failed to initialize Backend Firestore:", err);
+    console.error(" Failed to initialize Backend Firestore:", err);
     return null;
   }
 }
