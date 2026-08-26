@@ -10,6 +10,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "dotenv": "^17.2.3",
+    "firebase": "^12.7.0",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
