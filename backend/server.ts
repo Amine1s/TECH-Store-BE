@@ -11,6 +11,7 @@ import {
   saveOrderToDb,
   updateOrderInDb
 } from "./firestore.js";
+
 const app = express();
 const PORT = 3000;
 
@@ -458,6 +459,29 @@ app.get(["/api/products/:id", "/products/:id"], (req, res) => {
 });
 
 // 3.1 Admin Product Management Endpoints (Secure Serverless / Backend DB Writes)
+app.post(["/api/admin/products/batch-sync", "/admin/products/batch-sync"], async (req, res) => {
+  const { products: newProductsList } = req.body;
+  if (!newProductsList || !Array.isArray(newProductsList) || newProductsList.length === 0) {
+    return res.status(400).json({ error: "قائمة المنتجات فارغة" });
+  }
+
+  let savedCount = 0;
+  for (const p of newProductsList) {
+    if (p && p.id) {
+      const idx = allProducts.findIndex(item => item.id === p.id);
+      if (idx > -1) {
+        allProducts[idx] = p;
+      } else {
+        allProducts.push(p);
+      }
+      await saveProductToDb(p);
+      savedCount++;
+    }
+  }
+
+  res.json({ success: true, count: savedCount, message: `تمت مزامنة ${savedCount} منتج بنجاح في قاعدة البيانات السحابية.` });
+});
+
 app.post(["/api/admin/products", "/admin/products"], async (req, res) => {
   const product = req.body;
   if (!product || !product.id || !product.name || !product.price) {
@@ -501,7 +525,7 @@ app.delete(["/api/admin/products/:id", "/admin/products/:id"], async (req, res) 
 });
 
 // 4. Secure Checkout process simulation with high speed and validation
-app.post(["/api/checkout", "/checkout"], (req, res) => {
+app.post(["/api/checkout", "/checkout"], async (req, res) => {
   const { cart, checkoutInfo, cartSessionId } = req.body;
 
   if (!cart || !Array.isArray(cart) || cart.length === 0) {
@@ -579,6 +603,14 @@ app.post(["/api/checkout", "/checkout"], (req, res) => {
   };
 
   orders.unshift(newOrder);
+
+  // Securely save order to Firestore from backend
+  await saveOrderToDb({
+    ...newOrder,
+    customer: checkoutInfo,
+    items: newOrder.cart,
+    createdAt: nowStr
+  });
 
   // If we have an associated cartSessionId, mark it as purchased
   if (cartSessionId) {
@@ -1039,7 +1071,6 @@ async function startServer() {
     });
   }
 
-
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is booting on port ${PORT}...`);
     console.log(`Concurrent Visitor Capacity: 5000+`);
@@ -1050,6 +1081,9 @@ async function startServer() {
 if (!process.env.VERCEL) {
   startServer();
 }
+
+export default app;
+
 
 export default app;
 
