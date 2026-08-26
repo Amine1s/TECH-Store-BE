@@ -42,12 +42,9 @@ function getFirebaseConfig() {
   }
 
   // 3. Check for firebase-applet-config.json in workspace directories
-  const candidatePaths = [
+const candidatePaths = [
     path.join(process.cwd(), "firebase-applet-config.json"),
-    path.join(process.cwd(), "..", "firebase-applet-config.json"),
-    path.join(__dirname, "firebase-applet-config.json"),
-    path.join(__dirname, "..", "firebase-applet-config.json"),
-    path.join(__dirname, "../..", "firebase-applet-config.json")
+    path.join(process.cwd(), "..", "firebase-applet-config.json")
   ];
 
   for (const p of candidatePaths) {
